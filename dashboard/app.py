@@ -1,27 +1,44 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, render_template, jsonify, request
 from esp32_serial import get_sensor_data, start_serial
 
-app = Flask(name)
+app = Flask(__name__)
+
+ai_data = {
+    "status": "NORMAL",
+    "risk": 0,
+    "alerts": []
+}
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
+
 @app.route("/api/sensors")
 def sensors():
-    return jsonify(get_sensor_data())
+    data = get_sensor_data()
+    data.update(ai_data)
+    return jsonify(data)
+
+
+@app.route("/api/ai-status", methods=["POST"])
+def update_ai_status():
+    global ai_data
+
+    received_data = request.get_json()
+
+    if received_data:
+        ai_data.update(received_data)
+
+    return jsonify({"message": "AI status updated"})
+
 
 @app.route("/api/status")
 def status():
-    data = get_sensor_data()
+    return jsonify(ai_data)
 
-    return jsonify({
-        "status": data["status"],
-        "alcohol": data["alcohol"],
-        "tilt": data["tilt"],
-        "button": data["button"]
-    })
 
-if name == "main":
+if __name__ == "__main__":
     start_serial()
     app.run(host="127.0.0.1", port=5000, debug=False)
