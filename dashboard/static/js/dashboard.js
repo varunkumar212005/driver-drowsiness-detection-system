@@ -6,7 +6,6 @@ async function updateDashboard() {
         const status = document.getElementById("status");
 
         status.innerText = data.status || "NORMAL";
-
         status.className = "value";
 
         if (data.status === "NORMAL") {
@@ -21,7 +20,7 @@ async function updateDashboard() {
             (data.risk ?? 0) + "/100";
 
         document.getElementById("alerts").innerText =
-            data.alerts && data.alerts.length > 0
+            data.alerts?.length
                 ? data.alerts.join(", ")
                 : "No Alerts";
 
@@ -29,10 +28,32 @@ async function updateDashboard() {
             data.alcohol ?? 0;
 
         document.getElementById("tilt").innerText =
-            data.tilt ?? 0;
+            data.tilt === 1 ? "DETECTED" : "NORMAL";
 
         document.getElementById("button").innerText =
-            data.button ?? 0;
+            data.button === 1 ? "PRESSED" : "NOT PRESSED";
+
+        document.getElementById("connection").innerText =
+            data.connected ? "CONNECTED" : "DISCONNECTED";
+
+        document.getElementById("gps").innerText =
+            data.gps_valid ? "GPS CONNECTED" : "WAITING FOR GPS";
+
+        document.getElementById("latitude").innerText =
+            data.latitude ?? "--";
+
+        document.getElementById("longitude").innerText =
+            data.longitude ?? "--";
+
+        const mapsLink = document.getElementById("mapsLink");
+
+        if (data.gps_valid && data.maps_link) {
+            mapsLink.href = data.maps_link;
+            mapsLink.innerText = "View Driver Location";
+        } else {
+            mapsLink.href = "#";
+            mapsLink.innerText = "Location unavailable";
+        }
 
     } catch (error) {
         console.log("Dashboard update error:", error);
