@@ -33,10 +33,15 @@ def distance(p1, p2):
 
 
 def calculate_ear(points):
+    horizontal = distance(points[0], points[3])
+
+    if horizontal == 0:
+        return 0
+
     return (
         distance(points[1], points[5]) +
         distance(points[2], points[4])
-    ) / (2 * distance(points[0], points[3]))
+    ) / (2 * horizontal)
 
 
 camera = cv2.VideoCapture(0)
@@ -44,6 +49,8 @@ camera = cv2.VideoCapture(0)
 closed_frames = 0
 yawn_frames = 0
 last_api_update = 0
+frame_count = 0
+phone_detected = False
 
 with mp_face_mesh.FaceMesh(
     max_num_faces=1,
@@ -59,6 +66,8 @@ with mp_face_mesh.FaceMesh(
         if not success:
             break
 
+        frame_count += 1
+
         h, w, _ = frame.shape
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -67,7 +76,7 @@ with mp_face_mesh.FaceMesh(
         drowsiness = False
         yawning = False
         distraction = False
-        phone = False
+        phone = phone_detected
 
         alerts = []
 
@@ -111,7 +120,12 @@ with mp_face_mesh.FaceMesh(
             p3 = (left.x * w, left.y * h)
             p4 = (right.x * w, right.y * h)
 
-            mar = distance(p1, p2) / distance(p3, p4)
+            mouth_width = distance(p3, p4)
+
+            mar = (
+                distance(p1, p2) / mouth_width
+                if mouth_width > 0 else 0
+            )
 
             if mar > 0.6:
                 yawn_frames += 1
@@ -139,14 +153,14 @@ with mp_face_mesh.FaceMesh(
 
             distortion = np.zeros((4, 1))
 
-            success, rotation, translation = cv2.solvePnP(
+            pose_success, rotation, translation = cv2.solvePnP(
                 MODEL_POINTS,
                 image_points,
                 camera_matrix,
                 distortion
             )
 
-            if success:
+            if pose_success:
 
                 angles, _, _, _, _, _ = cv2.RQDecomp3x3(
                     cv2.Rodrigues(rotation)[0]
@@ -178,29 +192,41 @@ with mp_face_mesh.FaceMesh(
                 2
             )
 
-        detections = model(frame, verbose=False)
+        else:
+            closed_frames = 0
+            yawn_frames = 0
 
-        for result in detections:
-            for box in result.boxes:
+        if frame_count % 3 == 0:
 
-                class_id = int(box.cls[0])
+            detections = model(frame, verbose=False)
 
-                if model.names[class_id] == "cell phone":
+            phone_detected = False
 
-                    phone = True
-                    alerts.append("PHONE DETECTED")
+            for result in detections:
+                for box in result.boxes:
 
-                    x1, y1, x2, y2 = map(
-                        int, box.xyxy[0]
-                    )
+                    class_id = int(box.cls[0])
 
-                    cv2.rectangle(
-                        frame,
-                        (x1, y1),
-                        (x2, y2),
-                        (0, 0, 255),
-                        2
-                    )
+                    if model.names[class_id] == "cell phone":
+
+                        phone_detected = True
+
+                        x1, y1, x2, y2 = map(
+                            int, box.xyxy[0]
+                        )
+
+                        cv2.rectangle(
+                            frame,
+                            (x1, y1),
+                            (x2, y2),
+                            (0, 0, 255),
+                            2
+                        )
+
+        phone = phone_detected
+
+        if phone:
+            alerts.append("PHONE DETECTED")
 
         risk, status = calculate_risk(
             drowsiness=drowsiness,
@@ -229,10 +255,11 @@ with mp_face_mesh.FaceMesh(
                     method="POST"
                 )
 
-                urllib.request.urlopen(
+                with urllib.request.urlopen(
                     api_request,
                     timeout=2
-                )
+                ) as response:
+                    response.read()
 
             except Exception as error:
                 print("Dashboard connection error:", error)
