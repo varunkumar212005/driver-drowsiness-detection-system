@@ -15,7 +15,11 @@ sensor_data = {
     "tilt": 0,
     "button": 0,
     "esp32_status": "DISCONNECTED",
-    "connected": False
+    "connected": False,
+    "latitude": None,
+    "longitude": None,
+    "gps_valid": False,
+    "maps_link": None
 }
 
 data_lock = threading.Lock()
@@ -79,6 +83,27 @@ def read_esp32():
                             values["STATUS"]
                         )
 
+                    if "GPS" in values:
+                        sensor_data["gps_valid"] = (
+                            values["GPS"] == "1"
+                        )
+
+                    if (
+                        sensor_data["gps_valid"]
+                        and "LAT" in values
+                        and "LNG" in values
+                    ):
+                        latitude = float(values["LAT"])
+                        longitude = float(values["LNG"])
+
+                        if -90 <= latitude <= 90 and -180 <= longitude <= 180:
+                            sensor_data["latitude"] = latitude
+                            sensor_data["longitude"] = longitude
+
+                            sensor_data["maps_link"] = (
+                                f"https://www.google.com/maps?q={latitude},{longitude}"
+                            )
+
         except Exception as error:
 
             print("ESP32 Error:", error)
@@ -86,6 +111,7 @@ def read_esp32():
             with data_lock:
                 sensor_data["connected"] = False
                 sensor_data["esp32_status"] = "DISCONNECTED"
+                sensor_data["gps_valid"] = False
 
             time.sleep(3)
 
