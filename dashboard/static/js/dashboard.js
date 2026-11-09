@@ -1,18 +1,31 @@
 async function updateDashboard() {
+
     try {
+
         const response = await fetch("/api/sensors");
+
+        if (!response.ok) {
+            throw new Error("Unable to fetch sensor data");
+        }
+
         const data = await response.json();
 
         const status = document.getElementById("status");
 
         status.innerText = data.status || "NORMAL";
         status.className = "value";
+        status.style.color = "";
 
         if (data.status === "NORMAL") {
+
             status.classList.add("normal");
+
         } else if (data.status === "WARNING") {
+
             status.style.color = "#facc15";
+
         } else {
+
             status.classList.add("danger");
         }
 
@@ -45,18 +58,30 @@ async function updateDashboard() {
         document.getElementById("longitude").innerText =
             data.longitude ?? "--";
 
+        document.getElementById("systemInfo").innerText =
+            data.connected
+                ? "Monitoring Active"
+                : "Waiting for ESP32 Connection";
+
         const mapsLink = document.getElementById("mapsLink");
 
         if (data.gps_valid && data.maps_link) {
+
             mapsLink.href = data.maps_link;
             mapsLink.innerText = "View Driver Location";
+
         } else {
+
             mapsLink.href = "#";
             mapsLink.innerText = "Location unavailable";
         }
 
     } catch (error) {
+
         console.log("Dashboard update error:", error);
+
+        document.getElementById("systemInfo").innerText =
+            "Dashboard Connection Error";
     }
 }
 
