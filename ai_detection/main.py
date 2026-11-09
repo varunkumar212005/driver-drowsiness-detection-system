@@ -1,6 +1,11 @@
 import cv2
 import mediapipe as mp
 import math
+import numpy as np
+import json
+import time
+import urllib.request
+
 from ultralytics import YOLO
 from risk_assessment import calculate_risk
 
@@ -10,6 +15,17 @@ mp_face_mesh = mp.solutions.face_mesh
 
 LEFT_EYE = [362, 385, 387, 263, 373, 380]
 RIGHT_EYE = [33, 160, 158, 133, 153, 144]
+
+LANDMARKS = [1, 152, 33, 263, 61, 291]
+
+MODEL_POINTS = np.array([
+    (0, 0, 0),
+    (0, -330, -65),
+    (-225, 170, -135),
+    (225, 170, -135),
+    (-150, -150, -125),
+    (150, -150, -125)
+], dtype=np.float64)
 
 
 def distance(p1, p2):
@@ -27,6 +43,7 @@ camera = cv2.VideoCapture(0)
 
 closed_frames = 0
 yawn_frames = 0
+last_api_update = 0
 
 with mp_face_mesh.FaceMesh(
     max_num_faces=1,
@@ -49,7 +66,9 @@ with mp_face_mesh.FaceMesh(
 
         drowsiness = False
         yawning = False
+        distraction = False
         phone = False
+
         alerts = []
 
         if results.multi_face_landmarks:
@@ -103,10 +122,56 @@ with mp_face_mesh.FaceMesh(
                 yawning = True
                 alerts.append("YAWNING")
 
+            image_points = np.array([
+                (face.landmark[i].x * w,
+                 face.landmark[i].y * h)
+                for i in LANDMARKS
+            ], dtype=np.float64)
+
+            focal_length = w
+            center = (w / 2, h / 2)
+
+            camera_matrix = np.array([
+                [focal_length, 0, center[0]],
+                [0, focal_length, center[1]],
+                [0, 0, 1]
+            ], dtype=np.float64)
+
+            distortion = np.zeros((4, 1))
+
+            success, rotation, translation = cv2.solvePnP(
+                MODEL_POINTS,
+                image_points,
+                camera_matrix,
+                distortion
+            )
+
+            if success:
+
+                angles, _, _, _, _, _ = cv2.RQDecomp3x3(
+                    cv2.Rodrigues(rotation)[0]
+                )
+
+                pitch, yaw, roll = angles
+
+                if abs(yaw) > 20 or abs(pitch) > 20:
+                    distraction = True
+                    alerts.append("DISTRACTION")
+
+                cv2.putText(
+                    frame,
+                    f"Yaw: {yaw:.1f} Pitch: {pitch:.1f}",
+                    (20, 35),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (255, 255, 0),
+                    2
+                )
+
             cv2.putText(
                 frame,
                 f"EAR: {ear:.2f} MAR: {mar:.2f}",
-                (20, 35),
+                (20, 65),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
                 (255, 255, 0),
@@ -140,20 +205,52 @@ with mp_face_mesh.FaceMesh(
         risk, status = calculate_risk(
             drowsiness=drowsiness,
             yawning=yawning,
+            distraction=distraction,
             phone=phone
         )
+
+        if time.time() - last_api_update >= 1:
+
+            data = {
+                "status": status,
+                "risk": risk,
+                "alerts": alerts
+            }
+
+            try:
+                payload = json.dumps(data).encode("utf-8")
+
+                api_request = urllib.request.Request(
+                    "http://127.0.0.1:5000/api/ai-status",
+                    data=payload,
+                    headers={
+                        "Content-Type": "application/json"
+                    },
+                    method="POST"
+                )
+
+                urllib.request.urlopen(
+                    api_request,
+                    timeout=2
+                )
+
+            except Exception as error:
+                print("Dashboard connection error:", error)
+
+            last_api_update = time.time()
 
         color = (0, 255, 0)
 
         if status == "WARNING":
             color = (0, 255, 255)
+
         elif status == "DANGER":
             color = (0, 0, 255)
 
         cv2.putText(
             frame,
             f"STATUS: {status}",
-            (20, 75),
+            (20, 105),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,
             color,
@@ -163,7 +260,7 @@ with mp_face_mesh.FaceMesh(
         cv2.putText(
             frame,
             f"RISK SCORE: {risk}/100",
-            (20, 110),
+            (20, 140),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
             color,
@@ -171,10 +268,11 @@ with mp_face_mesh.FaceMesh(
         )
 
         for index, alert in enumerate(alerts):
+
             cv2.putText(
                 frame,
                 alert,
-                (20, 150 + index * 30),
+                (20, 180 + index * 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
                 (0, 0, 255),
