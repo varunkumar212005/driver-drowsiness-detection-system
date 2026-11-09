@@ -27,10 +27,13 @@ serial_thread = None
 
 
 def read_esp32():
-    global sensor_data
 
     while True:
+
+        esp = None
+
         try:
+
             print("Connecting to ESP32...")
 
             esp = serial.Serial(
@@ -46,6 +49,7 @@ def read_esp32():
             print("ESP32 Connected Successfully!")
 
             while True:
+
                 line = esp.readline().decode(
                     "utf-8",
                     errors="ignore"
@@ -57,66 +61,92 @@ def read_esp32():
                 values = {}
 
                 for item in line.split(","):
+
                     if ":" in item:
+
                         key, value = item.split(":", 1)
+
                         values[key.strip()] = value.strip()
 
-                with data_lock:
+                try:
 
-                    if "ALCOHOL" in values:
-                        sensor_data["alcohol"] = int(
-                            values["ALCOHOL"]
-                        )
+                    with data_lock:
 
-                    if "TILT" in values:
-                        sensor_data["tilt"] = int(
-                            values["TILT"]
-                        )
-
-                    if "BUTTON" in values:
-                        sensor_data["button"] = int(
-                            values["BUTTON"]
-                        )
-
-                    if "STATUS" in values:
-                        sensor_data["esp32_status"] = (
-                            values["STATUS"]
-                        )
-
-                    if "GPS" in values:
-                        sensor_data["gps_valid"] = (
-                            values["GPS"] == "1"
-                        )
-
-                    if (
-                        sensor_data["gps_valid"]
-                        and "LAT" in values
-                        and "LNG" in values
-                    ):
-                        latitude = float(values["LAT"])
-                        longitude = float(values["LNG"])
-
-                        if -90 <= latitude <= 90 and -180 <= longitude <= 180:
-                            sensor_data["latitude"] = latitude
-                            sensor_data["longitude"] = longitude
-
-                            sensor_data["maps_link"] = (
-                                f"https://www.google.com/maps?q={latitude},{longitude}"
+                        if "ALCOHOL" in values:
+                            sensor_data["alcohol"] = int(
+                                values["ALCOHOL"]
                             )
+
+                        if "TILT" in values:
+                            sensor_data["tilt"] = int(
+                                values["TILT"]
+                            )
+
+                        if "BUTTON" in values:
+                            sensor_data["button"] = int(
+                                values["BUTTON"]
+                            )
+
+                        if "STATUS" in values:
+                            sensor_data["esp32_status"] = (
+                                values["STATUS"]
+                            )
+
+                        if "GPS" in values:
+
+                            gps_valid = values["GPS"] == "1"
+
+                            sensor_data["gps_valid"] = gps_valid
+
+                            if gps_valid and "LAT" in values and "LNG" in values:
+
+                                latitude = float(values["LAT"])
+                                longitude = float(values["LNG"])
+
+                                if (
+                                    -90 <= latitude <= 90
+                                    and -180 <= longitude <= 180
+                                ):
+
+                                    sensor_data["latitude"] = latitude
+                                    sensor_data["longitude"] = longitude
+
+                                    sensor_data["maps_link"] = (
+                                        f"https://www.google.com/maps?q={latitude},{longitude}"
+                                    )
+
+                            else:
+
+                                sensor_data["latitude"] = None
+                                sensor_data["longitude"] = None
+                                sensor_data["maps_link"] = None
+
+                except (ValueError, TypeError):
+                    print("Invalid ESP32 sensor data received.")
 
         except Exception as error:
 
             print("ESP32 Error:", error)
 
             with data_lock:
+
                 sensor_data["connected"] = False
                 sensor_data["esp32_status"] = "DISCONNECTED"
                 sensor_data["gps_valid"] = False
+                sensor_data["latitude"] = None
+                sensor_data["longitude"] = None
+                sensor_data["maps_link"] = None
 
             time.sleep(3)
 
+        finally:
+
+            if esp and esp.is_open:
+                esp.close()
+
 
 def start_serial():
+
     global serial_thread
 
     if serial_thread and serial_thread.is_alive():
@@ -131,5 +161,6 @@ def start_serial():
 
 
 def get_sensor_data():
+
     with data_lock:
         return sensor_data.copy()
