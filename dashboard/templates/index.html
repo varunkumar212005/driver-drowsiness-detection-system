@@ -1,121 +1,50 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Driver Monitoring System</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #101827;
-            color: white;
-        }
+    <title>Driver Monitoring System</title>
 
-        header {
-            background: #1e293b;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .container {
-            padding: 25px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: #1e293b;
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .card h3 {
-            color: #38bdf8;
-        }
-
-        .value {
-            font-size: 25px;
-            font-weight: bold;
-        }
-
-        .normal {
-            color: #22c55e;
-        }
-
-        .danger {
-            color: #ef4444;
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #94a3b8;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
-<header>
-    <h1>Driver Monitoring System</h1>
-    <p>IoT and AI-Powered Real-Time Driver Safety Monitoring</p>
-</header>
+    <header>
+        <h1>Driver Monitoring System</h1>
+        <p>IoT and AI-Powered Real-Time Driver Safety Monitoring</p>
+    </header>
 
-<div class="container">
+    <main class="container">
 
-    <div class="card">
-        <h3>Driver Status</h3>
-        <p class="value normal" id="status">NORMAL</p>
-    </div>
+        <div class="card">
+            <h3>Driver Status</h3>
+            <p class="value normal" id="status">NORMAL</p>
+        </div>
 
-    <div class="card">
-        <h3>Alcohol Sensor</h3>
-        <p class="value" id="alcohol">0</p>
-    </div>
+        <div class="card">
+            <h3>Alcohol Sensor</h3>
+            <p class="value" id="alcohol">0</p>
+        </div>
 
-    <div class="card">
-        <h3>Tilt Detection</h3>
-        <p class="value" id="tilt">0</p>
-    </div>
+        <div class="card">
+            <h3>Tilt Detection</h3>
+            <p class="value" id="tilt">0</p>
+        </div>
 
-    <div class="card">
-        <h3>Emergency Button</h3>
-        <p class="value" id="button">0</p>
-    </div>
+        <div class="card">
+            <h3>Emergency Button</h3>
+            <p class="value" id="button">0</p>
+        </div>
 
-</div>
+    </main>
 
-<footer>
-    Final Year BE CSE Project | SDM Institute of Technology
-</footer>
+    <footer>
+        Final Year BE CSE Project | SDM Institute of Technology
+    </footer>
 
-<script>
-async function updateDashboard() {
-    try {
-        const response = await fetch("/api/sensors");
-        const data = await response.json();
-
-        const status = document.getElementById("status");
-
-        status.innerText = data.status;
-        status.className = "value " +
-            (data.status === "NORMAL" ? "normal" : "danger");
-
-        document.getElementById("alcohol").innerText = data.alcohol;
-        document.getElementById("tilt").innerText = data.tilt;
-        document.getElementById("button").innerText = data.button;
-
-    } catch (error) {
-        console.log("Dashboard update error:", error);
-    }
-}
-
-setInterval(updateDashboard, 1000);
-updateDashboard();
-</script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 
 </body>
 </html>
