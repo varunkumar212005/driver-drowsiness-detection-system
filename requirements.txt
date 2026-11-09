@@ -1,4 +1,3 @@
-# Starter dependencies. Verify versions against the code and your Python version.
 opencv-python
 mediapipe
 numpy
@@ -6,3 +5,4 @@ Flask
 pyserial
 ultralytics
 pandas
+requests
