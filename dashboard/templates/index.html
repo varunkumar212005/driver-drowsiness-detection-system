@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Driver Monitoring System</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -21,6 +20,16 @@
         <div class="card">
             <h3>Driver Status</h3>
             <p class="value normal" id="status">NORMAL</p>
+        </div>
+
+        <div class="card">
+            <h3>Risk Score</h3>
+            <p class="value" id="risk">0/100</p>
+        </div>
+
+        <div class="card">
+            <h3>AI Detection Alerts</h3>
+            <p class="value" id="alerts">No Alerts</p>
         </div>
 
         <div class="card">
