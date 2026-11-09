@@ -1,3 +1,5 @@
+#include <TinyGPS++.h>
+
 #define MQ3_PIN 34
 #define TILT_PIN 4
 #define BUTTON_PIN 23
@@ -7,10 +9,17 @@
 #define RED_LED 14
 #define YELLOW_LED 26
 
+#define GPS_RX 16
+#define GPS_TX 17
+
+TinyGPSPlus gps;
+
 String status = "NORMAL";
 
 void setup() {
     Serial.begin(115200);
+
+    Serial2.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
 
     pinMode(MQ3_PIN, INPUT);
     pinMode(TILT_PIN, INPUT);
@@ -25,6 +34,11 @@ void setup() {
 }
 
 void loop() {
+
+    while (Serial2.available()) {
+        gps.encode(Serial2.read());
+    }
+
     int alcoholValue = analogRead(MQ3_PIN);
     int tiltValue = digitalRead(TILT_PIN);
     int buttonValue = digitalRead(BUTTON_PIN);
@@ -35,8 +49,7 @@ void loop() {
 
     if (alcoholDetected || tiltDetected || emergencyPressed) {
         status = "DANGER";
-    }
-    else {
+    } else {
         status = "NORMAL";
     }
 
@@ -56,7 +69,24 @@ void loop() {
     Serial.print(emergencyPressed);
 
     Serial.print(",STATUS:");
-    Serial.println(status);
+    Serial.print(status);
+
+    Serial.print(",LAT:");
+    if (gps.location.isValid()) {
+        Serial.print(gps.location.lat(), 6);
+    } else {
+        Serial.print("0");
+    }
+
+    Serial.print(",LNG:");
+    if (gps.location.isValid()) {
+        Serial.print(gps.location.lng(), 6);
+    } else {
+        Serial.print("0");
+    }
+
+    Serial.print(",GPS:");
+    Serial.println(gps.location.isValid() ? 1 : 0);
 
     delay(500);
 }
