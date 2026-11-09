@@ -13,20 +13,21 @@ body {
 
 header {
     background: #172554;
-    padding: 35px 20px;
+    padding: 40px 20px;
     text-align: center;
     border-bottom: 2px solid #2563eb;
 }
 
 header h1 {
     color: #38bdf8;
-    font-size: 30px;
+    font-size: 32px;
     margin-bottom: 12px;
 }
 
 header p {
     color: #cbd5e1;
     font-size: 15px;
+    line-height: 1.6;
 }
 
 .container {
@@ -34,7 +35,10 @@ header p {
     margin: auto;
     padding: 40px 25px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(230px, 1fr)
+    );
     gap: 25px;
 }
 
@@ -49,7 +53,7 @@ header p {
 }
 
 .card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-5px);
     border-color: #38bdf8;
 }
 
@@ -63,6 +67,7 @@ header p {
     font-size: 23px;
     font-weight: bold;
     overflow-wrap: anywhere;
+    line-height: 1.5;
 }
 
 .normal {
@@ -77,25 +82,36 @@ header p {
     color: #facc15;
 }
 
-footer {
-    text-align: center;
-    padding: 25px;
-    color: #94a3b8;
-    border-top: 1px solid #334155;
-    margin-top: 20px;
-}
-
 a {
     text-decoration: none;
+    font-size: 17px;
 }
 
 a:hover {
     text-decoration: underline;
 }
 
+footer {
+    text-align: center;
+    padding: 25px;
+    color: #94a3b8;
+    border-top: 1px solid #334155;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
 @media (max-width: 600px) {
+
+    header {
+        padding: 30px 15px;
+    }
+
     header h1 {
-        font-size: 23px;
+        font-size: 24px;
+    }
+
+    header p {
+        font-size: 13px;
     }
 
     .container {
@@ -106,5 +122,9 @@ a:hover {
 
     .card {
         padding: 25px 15px;
+    }
+
+    .value {
+        font-size: 21px;
     }
 }
