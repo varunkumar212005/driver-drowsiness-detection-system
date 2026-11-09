@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import math
 from ultralytics import YOLO
+from risk_assessment import calculate_risk
 
 model = YOLO("yolov8n.pt")
 
@@ -10,14 +11,17 @@ mp_face_mesh = mp.solutions.face_mesh
 LEFT_EYE = [362, 385, 387, 263, 373, 380]
 RIGHT_EYE = [33, 160, 158, 133, 153, 144]
 
+
 def distance(p1, p2):
     return math.dist(p1, p2)
+
 
 def calculate_ear(points):
     return (
         distance(points[1], points[5]) +
         distance(points[2], points[4])
     ) / (2 * distance(points[0], points[3]))
+
 
 camera = cv2.VideoCapture(0)
 
@@ -43,7 +47,9 @@ with mp_face_mesh.FaceMesh(
 
         results = face_mesh.process(rgb)
 
-        status = "NORMAL"
+        drowsiness = False
+        yawning = False
+        phone = False
         alerts = []
 
         if results.multi_face_landmarks:
@@ -73,6 +79,7 @@ with mp_face_mesh.FaceMesh(
                 closed_frames = 0
 
             if closed_frames >= 20:
+                drowsiness = True
                 alerts.append("DROWSINESS")
 
             upper = face.landmark[13]
@@ -93,6 +100,7 @@ with mp_face_mesh.FaceMesh(
                 yawn_frames = 0
 
             if yawn_frames >= 15:
+                yawning = True
                 alerts.append("YAWNING")
 
             cv2.putText(
@@ -114,6 +122,7 @@ with mp_face_mesh.FaceMesh(
 
                 if model.names[class_id] == "cell phone":
 
+                    phone = True
                     alerts.append("PHONE DETECTED")
 
                     x1, y1, x2, y2 = map(
@@ -128,16 +137,36 @@ with mp_face_mesh.FaceMesh(
                         2
                     )
 
-        if alerts:
-            status = "WARNING"
+        risk, status = calculate_risk(
+            drowsiness=drowsiness,
+            yawning=yawning,
+            phone=phone
+        )
+
+        color = (0, 255, 0)
+
+        if status == "WARNING":
+            color = (0, 255, 255)
+        elif status == "DANGER":
+            color = (0, 0, 255)
 
         cv2.putText(
             frame,
-            status,
+            f"STATUS: {status}",
             (20, 75),
             cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255) if alerts else (0, 255, 0),
+            0.8,
+            color,
+            2
+        )
+
+        cv2.putText(
+            frame,
+            f"RISK SCORE: {risk}/100",
+            (20, 110),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            color,
             2
         )
 
@@ -145,7 +174,7 @@ with mp_face_mesh.FaceMesh(
             cv2.putText(
                 frame,
                 alert,
-                (20, 115 + index * 30),
+                (20, 150 + index * 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
                 (0, 0, 255),
