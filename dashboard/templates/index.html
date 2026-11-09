@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Driver Monitoring System</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -70,10 +72,21 @@
         <div class="card">
             <h3>Driver Location</h3>
             <p class="value">
-                <a id="mapsLink" href="#" target="_blank" style="color: #38bdf8;">
+                <a
+                    id="mapsLink"
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="color: #38bdf8;"
+                >
                     Location unavailable
                 </a>
             </p>
+        </div>
+
+        <div class="card">
+            <h3>System Information</h3>
+            <p class="value" id="systemInfo">Monitoring Active</p>
         </div>
 
     </main>
@@ -85,4 +98,5 @@
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 
 </body>
+
 </html>
